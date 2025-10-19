@@ -34,7 +34,7 @@ Visual Information Lab, University of Bristol
 **EfficientSAM3** addresses this challenge by distilling SAM3's capabilities into lightweight architectures suitable for edge devices, enabling high-quality concept segmentation on mobile phones, embedded systems, and resource-constrained platforms.
 
 <p align="center">
-  <img src="images/efficientsam3.svg" alt="EfficientSAM3 Architecture" width="100%">
+  <img src="images/efficientsam3_full.svg" alt="EfficientSAM3 Architecture" width="100%">
 </p>
 
 
