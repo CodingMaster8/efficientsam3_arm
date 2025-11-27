@@ -36,6 +36,17 @@
 - [Acknowledgments](#acknowledgments)
 
 ---
+## 🔥 Teaser Image Model
+<p align="center">
+  <img src="https://github.com/SimonZeng7108/efficientsam3/blob/main/images/es-ev-s-teaser.jpg" width="30%">
+</p>
+
+ **EfficientViT-B0 (0.68M params)** distilled from **SAM3 Encoder (461.84M)** — **99.85% smaller**, trained on **1% SA-1B**.
+
+**Download Weight:** [Google Drive](https://drive.google.com/file/d/1MqtnQBaZWgtmURgBgQEEphnCNiLrPCjn/view?usp=drive_link). **Visualisation:** [Script](https://github.com/SimonZeng7108/efficientsam3/blob/stage1/sam3/efficientsam3_examples/efficientsam3_for_sam1_task_example.py) (Switch to Branch Stage1).
+
+
+---
 
 ## Updates
 - **[2025/11/25]** Teaser model released. See Above. More models are baking in the oven🔥.
@@ -264,4 +275,5 @@ This work is inspired by and builds upon:
 - **[RepViT](https://github.com/THU-MIG/RepViT)** - Mobile-optimized Vision Transformer backbones
 - **[TinyViT](https://github.com/wkcn/TinyViT)** - Tiny Vision Transformer architectures
 - **[EfficientViT](https://github.com/mit-han-lab/efficientvit)** - Efficient Vision Transformer models
+
 
