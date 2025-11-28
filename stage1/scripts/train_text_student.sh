@@ -18,11 +18,11 @@ for arg in "$@"; do
 done
 set -- "${EXTRA_ARGS[@]}"
 
-CFG="${CFG:-stage1/configs/text_student.yaml}"
-DATA_PATH="${DATA_PATH:-data/recap_subset}"
+CFG="${CFG:-stage1/configs/es_mc_s.yaml}"
+DATA_PATH="${DATA_PATH:-data}"
 OUTPUT="${OUTPUT:-output/stage1_text}"
 BATCH_SIZE="${BATCH_SIZE:-}"
-GPUS="${GPUS:-8}"
+GPUS="${GPUS:-1}"
 MASTER_PORT="${MASTER_PORT:-29503}"
 NNODES="${NNODES:-1}"
 NODE_RANK="${NODE_RANK:-0}"

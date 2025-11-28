@@ -269,11 +269,6 @@ def train_one_epoch(
         if loss_writer is not None:
             step = epoch * num_steps + idx
             loss_writer.add_scalar("loss/total", loss.item(), step)
-        
-        # Break after 1 batch for testing
-        if idx >= 0:
-            logger.info("Breaking after 1 batch for testing.")
-            break
 
     epoch_time = time.time() - start
     logger.info(

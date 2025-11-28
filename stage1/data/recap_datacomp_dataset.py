@@ -16,9 +16,10 @@ class RecapDataCompDataset(Dataset):
         search_paths = [
             os.path.join(data_root, "*.parquet"),
             os.path.join(data_root, "recap_subset", "*.parquet"),
+            os.path.join(data_root, "recap_subset", "data", "train_data", "*.parquet"),
             os.path.join(data_root, "data", "*.parquet"),
             os.path.join(data_root, "data", "train_data", "*.parquet"), # Added for specific structure
-            os.path.join(data_root, "**", "*.parquet"), # Recursive search as fallback
+            # os.path.join(data_root, "**", "*.parquet"), # Recursive search as fallback - REMOVED to avoid picking up wrong datasets
         ]
         
         self.parquet_files = []

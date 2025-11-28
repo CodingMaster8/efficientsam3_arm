@@ -148,11 +148,6 @@ def save_embeddings_one_epoch(config, model, data_loader, epoch):
                 f"time {batch_time.val:.4f} ({batch_time.avg:.4f})  "
                 f"{extra}  mem {memory_used:.0f}MB"
             )
-        
-        # Break after 1 batch for testing
-        if idx >= 0:
-            logger.info("Breaking after 1 batch for testing.")
-            break
 
     epoch_time = time.time() - start
     logger.info(
