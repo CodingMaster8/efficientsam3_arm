@@ -163,6 +163,7 @@ bash stage1/scripts/train_image_student.sh \
 Set `MODEL.BACKBONE` in the config file to one of:
 `MobileCLIP-S0`, `MobileCLIP-S1`, `MobileCLIP2-L`.
 
+**Option 1: Train from scratch (random initialization)**
 ```bash
 bash stage1/scripts/train_text_student.sh \
   CFG=stage1/configs/es_mc_s.yaml \
@@ -171,6 +172,40 @@ bash stage1/scripts/train_text_student.sh \
   BATCH_SIZE=64 \
   GPUS=1
 ```
+
+**Option 2: Train with pretrained MobileCLIP weights (RECOMMENDED for better performance)**
+
+First, download the pretrained MobileCLIP checkpoint:
+```bash
+# Create checkpoint directory
+mkdir -p checkpoints/mobileclip
+
+# Download full MobileCLIP checkpoint (contains both image + text encoders)
+# For MobileCLIP-S0:
+wget https://docs-assets.developer.apple.com/ml-research/datasets/mobileclip/mobileclip_s0.pt -P checkpoints/mobileclip
+
+# For other variants:
+# MobileCLIP-S1:
+# wget https://docs-assets.developer.apple.com/ml-research/datasets/mobileclip/mobileclip_s1.pt -P checkpoints/mobileclip
+# MobileCLIP-S2:
+# wget https://docs-assets.developer.apple.com/ml-research/datasets/mobileclip/mobileclip_s2.pt -P checkpoints/mobileclip
+# MobileCLIP-B:
+# wget https://docs-assets.developer.apple.com/ml-research/datasets/mobileclip/mobileclip_b.pt -P checkpoints/mobileclip
+# MobileCLIP-B (LT - Long Training):
+# wget https://docs-assets.developer.apple.com/ml-research/datasets/mobileclip/mobileclip_blt.pt -P checkpoints/mobileclip
+```
+
+Then train with pretrained initialization:
+```bash
+bash stage1/scripts/train_text_student.sh \
+  CFG=stage1/configs/es_mc_s_pretrained.yaml \
+  DATA_PATH=data \
+  OUTPUT=output/stage1_text/mobileclip_s0_pretrained \
+  BATCH_SIZE=64 \
+  GPUS=1
+```
+
+> **Note:** The pretrained checkpoint contains both image and text encoders. The training script automatically extracts only the text encoder weights (embedding layer, transformer, layer norm, and MobileCLIP's internal 512→512 projection). An additional projector layer (512→256) is added and trained from scratch to match SAM3's 256-dim embedding space.
 
 **Output structure**:
 ```
@@ -198,7 +233,8 @@ the model zoo to configuration files.
 | ES-EV-M | `efficientvit_b1` | `stage1/configs/es_ev_m.yaml` |
 | ES-EV-L | `efficientvit_b2` | `stage1/configs/es_ev_l.yaml` |
 | | | |
-| ES-MC-S | `MobileCLIP-S0` | `stage1/configs/es_mc_s.yaml` |
+| ES-MC-S | `MobileCLIP-S0` | `stage1/configs/es_mc_s.yaml` (random init) |
+| ES-MC-S | `MobileCLIP-S0` | `stage1/configs/es_mc_s_pretrained.yaml` (pretrained) |
 | ES-MC-M | `MobileCLIP-S1` | `stage1/configs/es_mc_m.yaml` |
 | ES-MC-L | `MobileCLIP2-L` | `stage1/configs/es_mc_l.yaml` |
 
@@ -206,6 +242,7 @@ Key config fields:
 
 | Field | Description |
 |-------|-------------|
+| `MODEL.PRETRAINED` | (Text encoders only) Path to pretrained MobileCLIP checkpoint. If specified, text encoder weights are automatically extracted and loaded. |
 | `DISTILL.TEACHER_EMBED_PATH` | Directory created during the teacher pass. |
 | `DISTILL.EMBED_SIZE` / `EMBED_DIM` | Embedding grid size (default `64×64×256`). Must match the saved blobs. |
 | `DATA.BATCH_SIZE`, `DATA.NUM_WORKERS` | Input pipeline throughput controls. |

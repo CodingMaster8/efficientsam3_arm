@@ -6,17 +6,17 @@ MODEL:
 
 TRAIN:
   START_EPOCH: 0
-  EPOCHS: 50
-  WARMUP_EPOCHS: 5
-  WEIGHT_DECAY: 0.01
-  BASE_LR: 1e-3
+  EPOCHS: 100  # Increased from 50 - smaller models need more iterations
+  WARMUP_EPOCHS: 10  # Increased from 5 - longer warmup for stability
+  WEIGHT_DECAY: 0.05  # Increased from 0.01 - more regularization for small model
+  BASE_LR: 5e-3  # Increased from 1e-3 - smaller models benefit from higher LR
   WARMUP_LR: 1e-6
-  MIN_LR: 1e-5
-  CLIP_GRAD: 5.0
+  MIN_LR: 5e-6  # Increased from 1e-5 - maintain higher minimum
+  CLIP_GRAD: 1.0  # Reduced from 5.0 - tighter gradient clipping for stability
   AUTO_RESUME: True
-  ACCUMULATION_STEPS: 1
+  ACCUMULATION_STEPS: 2  # Increased from 1 - effective batch size 128
   USE_CHECKPOINT: False
-  LAYER_LR_DECAY: 1.0
+  LAYER_LR_DECAY: 0.9  # Reduced from 1.0 - layer-wise LR decay to stabilize deep layers
   EVAL_BN_WHEN_TRAINING: False
   FIND_UNUSED_PARAMETERS: True
 
@@ -54,10 +54,10 @@ DISTILL:
   EMBED_DIM: 256
   EMBED_SIZE: 0
   NUM_EMBED: 32
-  PIXEL_WISE: 1.0
+  PIXEL_WISE: 1.0  # MSE loss weight
   CHANNEL_WISE: 0.0
   CORRELATION: 0.0
-  COSINE: 1.0
+  COSINE: 2.0  # Increased from 1.0 - emphasize angular alignment for small model
   TEACHER_EMBED_PATH: 'output/stage1_text_teacher/embeddings'
   SAVE_TEACHER_EMBED: False
   NO_RAND: True

@@ -49,7 +49,7 @@ def main(args, config):
     dataset_train, _, data_loader_train, _ = build_loader(config, build_val=False)
 
     logger.info(f"Creating text student model")
-    model = build_text_student_model(config)
+    model = build_text_student_model(config, logger=logger)
     if not args.only_cpu:
         model.cuda()
 

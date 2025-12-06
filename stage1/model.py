@@ -39,7 +39,7 @@ def build_image_student_model(config):
     )
 
 
-def build_text_student_model(config):
+def build_text_student_model(config, logger=None):
     backbone = config.MODEL.BACKBONE
     
     # Default config values
@@ -61,9 +61,10 @@ def build_text_student_model(config):
     if backbone == "MobileCLIP-S0":
         cfg.update({
             "dim": 512,
-            "n_transformer_layers": 4,
+            "n_transformer_layers": 4,  # Original MobileCLIP-S0 design
             "n_heads_per_layer": 8,
-            "model_name": "mct",
+            "model_name": "mct",  # RepMixer architecture
+            "ffn_multiplier_per_layer": 4.0,  # Original FFN multiplier
         })
     elif backbone in ["MobileCLIP-S1", "MobileCLIP2-S0", "MobileCLIP2-S2"]:
         cfg.update({
@@ -94,11 +95,63 @@ def build_text_student_model(config):
         # Default fallback
         pass
 
-    return TextStudentEncoder(
+    model = TextStudentEncoder(
         cfg=cfg,
         context_length=32, # Match teacher input length
         output_dim=config.DISTILL.EMBED_DIM,
     )
+    
+    # Load pretrained weights if specified
+    if hasattr(config.MODEL, 'PRETRAINED') and config.MODEL.PRETRAINED:
+        pretrained_path = config.MODEL.PRETRAINED
+        if logger:
+            logger.info(f"Loading pretrained text encoder from: {pretrained_path}")
+        
+        try:
+            pretrained_state = torch.load(pretrained_path, map_location='cpu')
+            
+            # Handle full MobileCLIP checkpoint (contains image + text encoders)
+            if 'text_encoder.embedding_layer.weight' in pretrained_state:
+                if logger:
+                    logger.info("Detected full MobileCLIP checkpoint, extracting text encoder...")
+                # Extract text encoder weights
+                text_encoder_state = {}
+                for key, value in pretrained_state.items():
+                    if key.startswith('text_encoder.'):
+                        new_key = key.replace('text_encoder.', 'encoder.')
+                        text_encoder_state[new_key] = value
+                pretrained_state = text_encoder_state
+            
+            # Load weights with flexible matching
+            missing_keys, unexpected_keys = model.load_state_dict(pretrained_state, strict=False)
+            
+            if logger:
+                logger.info(f"Loaded pretrained weights:")
+                logger.info(f"  Missing keys: {len(missing_keys)}")
+                if len(missing_keys) > 0 and len(missing_keys) <= 10:
+                    for key in missing_keys:
+                        logger.info(f"    - {key}")
+                logger.info(f"  Unexpected keys: {len(unexpected_keys)}")
+                if len(unexpected_keys) > 0 and len(unexpected_keys) <= 10:
+                    for key in unexpected_keys:
+                        logger.info(f"    - {key}")
+                
+                # The projector layer should be missing (we train it from scratch)
+                expected_missing = ['projector.weight', 'projector.bias']
+                actual_missing_important = [k for k in missing_keys if k not in expected_missing]
+                if len(actual_missing_important) > 0:
+                    logger.warning(f"  Important missing keys (not projector): {actual_missing_important}")
+                else:
+                    logger.info(f"  ✓ All important keys loaded successfully")
+        
+        except Exception as e:
+            if logger:
+                logger.error(f"Failed to load pretrained weights: {e}")
+                logger.warning("Continuing with random initialization...")
+            else:
+                print(f"Warning: Failed to load pretrained weights: {e}")
+    
+    return model
 
 
 def build_image_teacher_model(config):
