@@ -1,0 +1,86 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates. All Rights Reserved
+
+import torch
+from efficientsam3_arm.perflib.masks_ops import mask_iou
+import numpy as np
+
+# We import the ARM-compatible NMS we defined in the previous step
+try:
+    from efficientsam3_arm.perflib.arm.nms import nms_arm
+except ImportError:
+    nms_arm = None
+
+
+def nms_masks(
+    pred_probs: torch.Tensor,
+    pred_masks: torch.Tensor,
+    prob_threshold: float,
+    iou_threshold: float,
+) -> torch.Tensor:
+    """
+    Args:
+      - pred_probs: (num_det,) float Tensor, containing the score (probability) of each detection
+      - pred_masks: (num_det, H_mask, W_mask) float Tensor, containing the binary segmentation mask of each detection
+      - prob_threshold: float, score threshold to prefilter detections (NMS is performed on detections above threshold)
+      - iou_threshold: float, mask IoU threshold for NMS
+
+    Returns:
+     - keep: (num_det,) bool Tensor, indicating whether each detection is kept after score thresholding + NMS
+    """
+    # prefilter the detections with prob_threshold ("valid" are those above prob_threshold)
+    is_valid = pred_probs > prob_threshold  # (num_det,)
+    probs = pred_probs[is_valid]  # (num_valid,)
+    masks_binary = pred_masks[is_valid] > 0  # (num_valid, H_mask, W_mask)
+    
+    if probs.numel() == 0:
+        return is_valid  # no valid detection, return empty keep mask
+
+    ious = mask_iou(masks_binary, masks_binary)  # (num_valid, num_valid)
+    
+    # Use the generic NMS dispatcher
+    kept_inds = generic_nms(ious, probs, iou_threshold)
+
+    # valid_inds are the indices among `probs` of valid detections before NMS (or -1 for invalid)
+    valid_inds = torch.where(is_valid, is_valid.cumsum(dim=0) - 1, -1)  # (num_det,)
+    keep = torch.isin(valid_inds, kept_inds)  # (num_det,)
+    return keep
+
+
+def generic_nms(
+    ious: torch.Tensor, scores: torch.Tensor, iou_threshold=0.5
+) -> torch.Tensor:
+    """A generic version of `torchvision.ops.nms` that takes a pairwise IoU matrix."""
+
+    assert ious.dim() == 2 and ious.size(0) == ious.size(1)
+    assert scores.dim() == 1 and scores.size(0) == ious.size(0)
+
+    # If the user has the modified 'nms_arm' (which is now CPU/NumPy based), use it.
+    if nms_arm is not None:
+        return nms_arm(ious, scores, iou_threshold)
+    
+    # Fallback: Internal CPU implementation if nms_arm import failed
+    return generic_nms_cpu(ious, scores, iou_threshold)
+
+
+def generic_nms_cpu(
+    ious: torch.Tensor, scores: torch.Tensor, iou_threshold=0.5
+) -> torch.Tensor:
+    """
+    A generic version of `torchvision.ops.nms` that takes a pairwise IoU matrix. (CPU implementation
+    based on https://github.com/jwyang/faster-rcnn.pytorch/blob/master/lib/model/nms/nms_cpu.py)
+    """
+    # Ensure we move to CPU and convert to numpy (handles MPS/CUDA tensors gracefully)
+    ious_np = ious.float().detach().cpu().numpy()
+    scores_np = scores.float().detach().cpu().numpy()
+    
+    order = scores_np.argsort()[::-1]
+    kept_inds = []
+    while order.size > 0:
+        i = order.item(0)
+        kept_inds.append(i)
+        # Find indices where IoU with current best 'i' is low enough to keep
+        inds = np.where(ious_np[i, order[1:]] <= iou_threshold)[0]
+        # order[1:] shifts indices by 1, so we map back to original order array
+        order = order[inds + 1]
+
+    return torch.tensor(kept_inds, dtype=torch.int64, device=scores.device)
